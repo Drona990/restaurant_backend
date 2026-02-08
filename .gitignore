@@ -1,0 +1,63 @@
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+
+# ----------------------------
+# Virtual Environment
+# ----------------------------
+venv/
+env/
+.venv/
+auth_env/
+giantogram_env/
+ENV/
+
+# ----------------------------
+# Django
+# ----------------------------
+*.log
+db.sqlite3
+staticfiles/
+media/
+local_settings.py
+
+# ----------------------------
+# Environment Variables
+# ----------------------------
+.env
+.env.*
+*.env
+
+# ----------------------------
+# IDE / Editor
+# ----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ----------------------------
+# OS files
+# ----------------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------------
+# Node (if used)
+# ----------------------------
+node_modules/
+
+# ----------------------------
+# Tests / Coverage
+# ----------------------------
+.coverage
+htmlcov/
+pytest_cache/

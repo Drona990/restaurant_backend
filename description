@@ -1,0 +1,6 @@
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+svenska_env\Scripts\activate                                      
+uvicorn restaurant.asgi:application --reload --host 0.0.0.0 --port 8000
+
+python manage.py makemigrations authentication
+python manage.py migrate
