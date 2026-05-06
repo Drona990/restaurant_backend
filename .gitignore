@@ -19,6 +19,7 @@ env/
 auth_env/
 giantogram_env/
 ENV/
+restaurant_env/
 
 # ----------------------------
 # Django

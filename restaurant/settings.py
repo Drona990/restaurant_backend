@@ -18,7 +18,7 @@ load_dotenv(BASE_DIR / ".env")
 # --------------------------------------------------
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG") == "True"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "restaurant.api.dronatandi.online,localhost").split(",")
 
 # --------------------------------------------------
 # APPLICATION DEFINITION
@@ -97,8 +97,8 @@ DATABASES = {
         'NAME': os.getenv("DB_NAME"),
         'USER': os.getenv("DB_USER"),
         'PASSWORD': os.getenv("DB_PASSWORD"),
-        'HOST': os.getenv("DB_HOST"),
-        'PORT': os.getenv("DB_PORT"),
+        'HOST': os.getenv("DB_HOST", "db"), 
+        'PORT': os.getenv("DB_PORT", "5432"),
     }
 }
 
@@ -115,7 +115,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [("redis", 6379)], 
         },
     },
 }
