@@ -24,22 +24,37 @@ class PlaceOrderView(APIView):
     permission_classes = [IsAuthenticated] 
 
     def post(self, request):
+        # 1. Frontend se aaya hua raw data check karein
+        print("--- FRONTEND SE AAYA DATA (RAW) ---")
+        print(request.data) 
+        
         serializer = OrderCreateSerializer(data=request.data, context={'request': request})
         
         if serializer.is_valid():
             try:
                 order = serializer.save()
+                
+                response_data = OrderListSerializer(order).data
+                
+                print("--- BACKEND SE BHEJA JA RAHA DATA (SUCCESS) ---")
+                print(response_data)
+                
                 return Response({
                     "success": True,
                     "message": "Order placed!",
-                    "data": OrderListSerializer(order).data
+                    "data": response_data
                 }, status=status.HTTP_201_CREATED)
+                
             except Exception as e:
-                print(f"Hybrid Order Error: {str(e)}")
+                print(f"ERROR OCCURRED: {str(e)}")
                 return Response({"success": False, "message": str(e)}, status=500)
         
+        # 3. Agar validation fail ho jaye
+        print("--- VALIDATION ERRORS ---")
+        print(serializer.errors)
         return Response({"success": False, "errors": serializer.errors}, status=400)
-    
+
+
 class OrderListView(APIView):
     permission_classes = [IsAuthenticated] 
 
@@ -168,110 +183,6 @@ class KDSUpdateView(APIView):
         return Response({"error": "Invalid status"}, status=400)
 
 # --- 3. BILLING VIEW (Auto Discount + Thermal Receipt) ---
-
-class GenerateBillView1(APIView):
-    permission_classes = [IsStaffOrHigher]
-
-    def post(self, request):
-        print("\n🚀 --- STARTING BILL GENERATION ---")
-        order_id = request.data.get('order_id')
-        payment_method = request.data.get('payment_method', 'Cash').capitalize()
-        user_coupon = request.data.get('coupon_code', None)
-        print(f"DEBUG: OrderID: {order_id}, Method: {payment_method}, Coupon: {user_coupon}")
-
-        try:
-            with transaction.atomic():
-                order = Order.objects.select_for_update().get(id=order_id, is_paid=False)
-                items = order.items.all()
-                
-                subtotal = sum(Decimal(str(it.quantity)) * it.unit_price for it in items)
-                subtotal = subtotal.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                print(f"DEBUG: Subtotal Calculated: {subtotal}")
-
-                # --- 🧠 AUTO DISCOUNT ENGINE ---
-                now = timezone.now()
-                best_discount_amt = Decimal('0.00')
-                applied_offer_name = "No Offer"
-
-                discounts = Discount.objects.filter(
-                    is_active=True, min_purchase__lte=subtotal
-                ).filter(
-                    Q(discount_type='THRESHOLD') |
-                    Q(discount_type='FESTIVAL', valid_from__lte=now, valid_to__gte=now) |
-                    Q(discount_type='COUPON', code=user_coupon)
-                )
-                
-                print(f"DEBUG: Found {discounts.count()} eligible discounts")
-
-                for d in discounts:
-                    amt = subtotal * (d.value / Decimal('100')) if d.value_type == 'PERCENT' else d.value
-                    if amt > best_discount_amt:
-                        best_discount_amt = amt
-                        applied_offer_name = d.name
-                
-                print(f"DEBUG: Best Discount Applied: {applied_offer_name} (Amt: {best_discount_amt})")
-
-                # --- 🧮 TAX & TOTAL ---
-                tax_rate = Decimal('0.18')
-                taxable_amount = subtotal - best_discount_amt
-                tax_amount = (taxable_amount * tax_rate).quantize(Decimal('0.01'))
-                final_total = (taxable_amount + tax_amount).quantize(Decimal('0.01'))
-
-                # Save Order Data
-                order.is_paid = True
-                order.payment_method = payment_method
-                order.total_amount = final_total
-                order.status = 'completed'
-                order.paid_at = timezone.now()
-                order.save()
-                print(f"DEBUG: Order {order_id} saved as PAID at {order.paid_at}")
-
-                if order.table:
-                    order.table.is_occupied = False
-                    order.table.save()
-                    print(f"DEBUG: Table {order.table.table_number} released")
-
-                bill_parcha = {
-                    "header": {"name": "SVENSKA RESTAURANT", "address": "Bengaluru, Karnataka"},
-                    "meta": {
-                        "inv": f"{order.invoice_number}",
-                        "order_id": f"{order.id}", 
-                        "table": order.table.table_number if order.table else "N/A",
-                        "waiter": order.waiter.username if order.waiter else "Staff",
-                        "method": payment_method,
-                        "time": order.paid_at.strftime("%d-%b-%Y %I:%M %p") 
-                    },
-                    "items": [
-                        {"name": it.menu_item.name, "qty": int(it.quantity), "total": str((it.quantity * it.unit_price).quantize(Decimal('0.01')))} 
-                        for it in items
-                    ],
-                    "summary": {
-                        "subtotal": str(subtotal),
-                        "offer": applied_offer_name,
-                        "discount": str(best_discount_amt),
-                        "tax": str(tax_amount),
-                        "grand_total": str(final_total)
-                    }
-                }
-            
-            # WebSocket Notify
-            channel_layer = get_channel_layer()
-            ws_data = {"type": "order_notification", "notification_type": "PAYMENT_CONFIRMED"}
-            broadcast_order_update(
-                station='both', # Admin, Kitchen, Waiter sabko refresh chahiye
-                table_no=order.table.table_number if order.table else 0,
-                notify_type='PAYMENT_CONFIRMED',
-                message=f"Bill Settled for Table {order.table.table_number if order.table else 'N/A'}",
-                data={"order_id": order.id}
-            )
-            
-            print("✅ --- BILL GENERATION SUCCESSFUL ---")
-            return Response({"success": True, "data": bill_parcha})
-
-        except Exception as e:
-            print(f"❌ --- ERROR: {str(e)} ---")
-            return Response({"error": str(e)}, status=500)
-        
 
 
 class GenerateBillView(APIView):

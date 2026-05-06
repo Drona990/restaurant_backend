@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: restaurant_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+  redis:
+    image: redis:7
+    container_name: restaurant_redis
+
+  web:
+    build: .
+    container_name: restaurant_backend
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate && 
+             python manage.py collectstatic --noinput &&
+             daphne -b 0.0.0.0 -p 8000 restaurant.asgi:application"
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
+  nginx:
+    image: nginx:latest
+    container_name: restaurant_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
