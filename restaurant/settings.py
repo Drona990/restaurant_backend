@@ -189,7 +189,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # URL used to access the files in the browser/Flutter
-MEDIA_URL = '/media/'
+#MEDIA_URL = '/media/'
+MEDIA_URL = 'https://restaurant.api.dronatandi.online/media/'
 
 # The actual folder on your computer where files will live
 MEDIA_ROOT = BASE_DIR / 'media'
