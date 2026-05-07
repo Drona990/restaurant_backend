@@ -4,7 +4,7 @@ services:
   db:
     image: postgres:15
     container_name: restaurant_db
-    restart: always  # Add this
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
@@ -28,7 +28,7 @@ services:
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - ./media:/app/media  # Changed to Bind Mount
     env_file:
       - .env
     restart: always 
@@ -44,7 +44,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - ./media:/app/media  # Changed to Bind Mount
     restart: always
     depends_on:
       - web
@@ -52,4 +52,4 @@ services:
 volumes:
   postgres_data:
   static_volume:
-  media_volume:
+  # media_volume removed because we are using bind mount now
